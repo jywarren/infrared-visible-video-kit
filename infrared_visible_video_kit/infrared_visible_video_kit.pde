@@ -1,3 +1,4 @@
+//import processing.opengl.*;
 import processing.video.*;
 
 Capture video;
@@ -11,13 +12,13 @@ float fontSize = 1.5;
 PFont fontA;
 
 public void setup() {
-  size(640, 480, P2D);
-  //size(320, 240, P2D);
+  //size(640, 480, P2D);
+  size(320, 240, P2D);
   // Or run full screen, more fun! Use with Sketch -> Present
-  //size(screen.width, screen.height, OPENGL);
+//  size(screen.width, screen.height, OPENGL);
 
   // Uses the default video input, see the reference if this causes an error
-  video = new Capture(this, width, height, 35);
+  video = new Capture(this, width, height, 30);
   video.settings();
   
   //instantiate capture source for right stereo image
@@ -59,13 +60,19 @@ void draw() {
 
         float vis = (r+b+g/3.000);
         float ir = (irr+irb+irg/3.000);
-        float ndvi = 255*((ir-vis)/(ir+vis));
-        int pixcolor = parseInt(ndvi);
+        float ndvi = 1.000*((ir-vis)/(ir+vis));
+        //int pixcolor = parseInt(ndvi);
+
+        // http://download.oracle.com/javase/1.4.2/docs/api/java/awt/Color.html
+        final Color colors = java.awt.Color.getHSBColor(ndvi,1.00,1.00);
+        pixels[index] = color(colors.getRed(),colors.getGreen(),colors.getBlue());
 
         // Render the difference image to the screen
-        pixels[index] = color(pixcolor, pixcolor, pixcolor);
+        //pixels[index] = color(newr, newg, newb);
         // The following line does the same thing much faster, but is more technical
         //pixels[index] = 0xFF000000 | (pixcolor << 16) | (pixcolor << 8) | pixcolor;
+        
+        //println(ndvi);
         
         index++;
     }
