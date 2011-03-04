@@ -1,0 +1,3 @@
+
+infrared_visible_video_kit
+infrared_visible_video_kit.jar,core.jar,video.jar
