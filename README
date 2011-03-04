@@ -1,0 +1,35 @@
+ o8o                          oooo        
+ `"'                          `888        
+oooo  oooo    ooo oooo    ooo  888  oooo  
+`888   `88.  .8'   `88.  .8'   888 .8P'   
+ 888    `88..8'     `88..8'    888888.    
+ 888     `888'       `888'     888 `88b.  
+o888o     `8'         `8'     o888o o888o 
+                                          
+the Infrared-Visible Video Kit
+was created by Jeffrey Warren
+of the Public Laboratory for Open Technology and Science
+http://publiclaboratory.org
+
+------------------------------------------
+
+To start, you can use one of the precompiled apps for linux, mac, windows
+(tested only on mac for now) and you'll be prompted to select a camera.
+Then you'll be prompted to select a second camera. The first should be a
+normal camera, the second should be a near infrared camera, which you 
+can build by following instructions here:
+
+http://publiclaboratory.org/tool/near-infrared-camera
+
+You should then see an NDVI composite image -- which typically displays
+vegetation brightly, and healthy vegetation (that is photosynthesizing)
+very brightly. Learn more about NDVI here:
+
+http://publiclaboratory.org/wiki/ndvi
+
+email jeff@publiclaboratory.org with bugs, questions, etc.
+
+Please fork and improve it! Post pictures! Stay in touch!
+
+This code is released under the MIT License. (c) 2011
+
