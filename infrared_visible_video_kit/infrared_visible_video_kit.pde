@@ -63,9 +63,13 @@ void draw() {
         float ndvi = 1.000*((ir-vis)/(ir+vis));
         //int pixcolor = parseInt(ndvi);
 
+	// NDVI:
         // http://download.oracle.com/javase/1.4.2/docs/api/java/awt/Color.html
-        final Color colors = java.awt.Color.getHSBColor(ndvi,1.00,1.00);
-        pixels[index] = color(colors.getRed(),colors.getGreen(),colors.getBlue());
+        //final Color colors = java.awt.Color.getHSBColor(ndvi,1.00,1.00);
+        //pixels[index] = color(colors.getRed(),colors.getGreen(),colors.getBlue());
+
+	// NRG:
+	pixels[index] = color(ir,r,g);
 
         // Render the difference image to the screen
         //pixels[index] = color(newr, newg, newb);
