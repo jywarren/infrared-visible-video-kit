@@ -56,8 +56,8 @@ class SpectrumCollector implements AudioSignal, AudioListener
       int b = pixelColor & 0xff;
 
       //samp[x] = samp[x] *0;//* map((r+b+g)/3,0,255,0.00,1.00);
+//      fft.setBand(x,map((r+b+g)/3.00,0,255,0,1));
       fft.setBand(x,fft.getBand(x) * map((r+b+g)/3.00,0,255,0,1));
-
       index++;
     }
 //    println("Desired spectrum: "+samp[0] + ", " + samp[samp.length/2] + ", " + index);
@@ -97,6 +97,7 @@ public void setup() {
   // and that it means the size of the spectrum
   // will be 512. see the online tutorial for more info.
   fft = new FFT(out.bufferSize(), out.sampleRate());
+      fft.window(FFT.HAMMING);
   spectrumfilter = new SpectrumCollector(out.bufferSize());
   // adds the signal to the output
 //  out.addSignal(spectrumfilter);
