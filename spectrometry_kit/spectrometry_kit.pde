@@ -8,7 +8,7 @@ Minim minim;
 AudioInput in;
 AudioOutput out;
 FFT fft;
-SpectrumCollector spectrum;
+SpectrumCollector spectrumfilter;
 
 float[] buffer;
 int bsize = 1024;
@@ -17,32 +17,59 @@ int res = 1;
 int samplesize = 50;
 int samplerow;
 
-class SpectrumCollector implements AudioSignal
+class SpectrumCollector implements AudioSignal, AudioListener
 {
+  private float[] leftChannel;
+  private float[] rightChannel;
+  SpectrumCollector(int sample)
+  {
+    leftChannel = new float[sample];
+    rightChannel= new float[sample];
+  }
+  // This part is implementing AudioListener interface, see Minim reference
+  synchronized void samples(float[] samp)
+  {
+     arraycopy(samp,leftChannel);
+  }
+  synchronized void samples(float[] sampL, float[] sampR)
+  {
+    arraycopy(sampL,leftChannel);
+    arraycopy(sampR,rightChannel);
+  }  
+  // This part is implementing AudioSignal interface, see Minim reference
   void generate(float[] samp)
   {
+    arraycopy(leftChannel,samp);
+//    println("left channel, before: "+ samp[0] + ", " + samp[samp.length/2] );
+    fft.forward(samp);
     loadPixels();
     background(0);
  
     int index = int (video.width*samplerow); //the middle horizontal strip
 
-    for (int x = 0; x < int (width); x+=res) {
+    for (int x = 0; x < fft.specSize(); x+=1) {
 
-      int pixelColor = video.pixels[index];
+      int vindex = int (map(x,0,fft.specSize(),0,video.width));
+      int pixelColor = video.pixels[vindex];
       int r = (pixelColor >> 16) & 0xff;
       int g = (pixelColor >> 8) & 0xff;
       int b = pixelColor & 0xff;
 
-      int ind = int (map(x,0,int (width),255,samp.length));
-      samp[ind] = int (map((r+b+g)/3,0,0.3*255,0,1));
+      //samp[x] = samp[x] *0;//* map((r+b+g)/3,0,255,0.00,1.00);
+      fft.setBand(x,fft.getBand(x) * map((r+b+g)/3.00,0,255,0,1));
 
       index++;
     }
+//    println("Desired spectrum: "+samp[0] + ", " + samp[samp.length/2] + ", " + index);
+    fft.inverse(samp);
+    
+//    println("Resulting spectrum: "+samp[0] + ", " + samp[samp.length/2] + ", " + index);
   }
- 
   // this is a stricly mono signal
   void generate(float[] left, float[] right)
   {
+//     arraycopy(leftChannel,left);
+//     arraycopy(rightChannel,right);
     generate(left);
     generate(right);
   }
@@ -70,9 +97,11 @@ public void setup() {
   // and that it means the size of the spectrum
   // will be 512. see the online tutorial for more info.
   fft = new FFT(out.bufferSize(), out.sampleRate());
-  spectrum = new SpectrumCollector();
+  spectrumfilter = new SpectrumCollector(out.bufferSize());
   // adds the signal to the output
-  out.addSignal(spectrum);
+//  out.addSignal(spectrumfilter);
+  in.addListener(spectrumfilter);
+  out.addSignal(spectrumfilter);
 
   buffer = new float[bsize];
 }
@@ -83,11 +112,9 @@ public void captureEvent(Capture c) {
 
 void draw() {
   loadPixels();
-//  background(0);
+  background(0);
 
   int index = int (video.width*samplerow); //the middle horizontal strip
-
-  //fft.forward(in.mix);
 
   for (int x = 0; x < int (width); x+=res) {
     
@@ -114,12 +141,9 @@ void draw() {
       pixels[(y*width)+x] = color(r,g,b);
     }
 
-//    fft.setBand(x, int ((r+b+g)/(3.0000*255)));    
-
     index++;
   }
 
-//  fft.inverse(buffer);
   updatePixels();
 }
 
