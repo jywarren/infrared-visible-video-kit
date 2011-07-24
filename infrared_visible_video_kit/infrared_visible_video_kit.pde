@@ -12,8 +12,9 @@ float fontSize = 1.5;
 PFont fontA;
 
 public void setup() {
+  size(1280, 720, P2D);
   //size(640, 480, P2D);
-  size(320, 240, P2D);
+  //size(320, 240, P2D);
   // Or run full screen, more fun! Use with Sketch -> Present
 //  size(screen.width, screen.height, OPENGL);
 
