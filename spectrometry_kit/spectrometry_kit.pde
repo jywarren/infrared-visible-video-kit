@@ -28,6 +28,7 @@ int bsize = 512;
 int res = 1;
 int samplesize = 30;
 int samplerow;
+int lastval = 0;
 
 class SpectrumCollector implements AudioSignal, AudioListener
 {
@@ -120,7 +121,8 @@ public void captureEvent(Capture c) {
 
 void draw() {
   loadPixels();
-//  background(0);
+  stroke(255);
+  background(0);
   int[] savedpixels = video.pixels;
 
   int index = int (video.width*samplerow); //the middle horizontal strip
@@ -153,6 +155,10 @@ void draw() {
     for (int y = 0; y < int (height/4); y+=res) {
       pixels[(y*width)+x] = color(r,g,b);
     }
+    
+    int val = r+g+b/3;
+    line(x,height-lastval,x+1,height-val);
+    lastval = r+g+b/3;
 
     index++;
   }
@@ -181,8 +187,8 @@ void keyPressed() {
 void stop()
 {
 //  out.close();
-  minim.stop(); 
-  super.stop();
+//  minim.stop(); 
+//  super.stop();
 }
 
 
