@@ -25,34 +25,36 @@ FFT fft;
 SpectrumCollector spectrumfilter;
 
 int bsize = 512;
-
+  String colortype = "combined";
 int res = 1;
 int samplesize = 30;
 int samplerow;
 int lastval = 0;
+// for rgb mode:
+  int lastred = 0;
+  int lastgreen = 0;
+  int lastblue = 0;
 int[] spectrumbuf;
 int[] lastspectrum;
 
 public void setup() {
+  //size(screen.width, screen.height, P2D);
   //size(1280, 720, P2D);
   size(640, 480, P2D);
   //size(320, 240, P2D);
   // Or run full screen, more fun! Use with Sketch -> Present
   //size(screen.width, screen.height, OPENGL);
 
-  // Uses the default video input, see the reference if this causes an error
   //video = new Capture(this, width, height, 20); //mac or windows
-  video = new GSCapture(this, width, height, "/dev/video1"); //linux
-  video.play(); //linux
+  video = new GSCapture(this, width, height, "/dev/video1"); //linux; type "ls /dev/video*" in the terminal to discover video devices
+  video.play(); //linux only
   samplerow = int (height*(0.850));
-//  video.settings(); // mac or windows only
-  
+//  video.settings(); // mac or windows only, allows selection of video input
   spectrumbuf = new int[width];
   lastspectrum = new int[width];
-  for (int x = 0;x < width;x++) {
+  for (int x = 0;x < width;x++) { // is this necessary? initializing the spectrum buffer with zeroes? come on!
     spectrumbuf[x] = 0;
   }
-
   minim = new Minim(this);
   minim.debugOn();
   in = minim.getLineIn(Minim.MONO, bsize);
@@ -65,8 +67,9 @@ public void setup() {
   fft = new FFT(out.bufferSize(), out.sampleRate());
   fft.window(FFT.HAMMING);
   spectrumfilter = new SpectrumCollector(out.bufferSize());
-  // adds the signal to the output
+  // passes the mic input to the spectrum filter class
   in.addListener(spectrumfilter);
+  // passes the result of the spectrum filter class to the audio output
   out.addSignal(spectrumfilter);
 }
 
@@ -78,10 +81,9 @@ public void captureEvent(GSCapture c) { //linux
 void draw() {
   loadPixels();
   background(0);
+  line(0,height-255,width,height-255); //100% mark
   int[] savedpixels = video.pixels;
-
-  int index = int (video.width*samplerow); //the middle horizontal strip
-
+  int index = int (video.width*samplerow); //the horizontal strip to sample
   for (int x = 0; x < int (width); x+=res) {
 
     int r = 0, g = 0, b = 0;
@@ -113,21 +115,36 @@ void draw() {
       pixels[(y*width)+x] = color(r,g,b);
     }
     
-    // current live spectrum:
-    stroke(255);
-    int val = (r+g+b)/3;
-    line(x,height-lastval,x+1,height-val);
-    lastval = (r+g+b)/3;
+    if (colortype == "combined") {
+      // current live spectrum:
+      stroke(255);
+      int val = (r+g+b)/3;
+      line(x,height-lastval,x+1,height-val);
+      lastval = (r+g+b)/3;
     
-    // last saved spectrum:
-    stroke(color(255,0,0));
-    int lastind = x-1;
-    if (lastind < 0) { lastind = 0; }
-    line(x,height-lastspectrum[lastind],x+1,height-lastspectrum[x]);
+      // last saved spectrum:
+      stroke(color(255,0,0));
+      int lastind = x-1;
+      if (lastind < 0) { lastind = 0; }
+      line(x,height-lastspectrum[lastind],x+1,height-lastspectrum[x]);
 
-    // difference of last saved and current:
-    stroke(color(255,255,0));
-    line(x,height-lastspectrum[lastind]+lastval,x+1,height-lastspectrum[x]+val);
+      // percent absorption compared to reference reading
+      stroke(color(255,255,0));
+      line(x,height-(255*(lastspectrum[lastind]-lastval)/(lastspectrum[lastind]+1.00)),x+1,height-(255*(lastspectrum[x]-val)/(lastspectrum[x]+1.00)));
+    } else if (colortype == "rgb") {
+      // red channel:
+      stroke(color(255,0,0));
+      line(x,height-lastred,x+1,height-r);
+      lastred = r;      
+      // green channel:
+      stroke(color(0,255,0));
+      line(x,height-lastgreen,x+1,height-g);
+      lastgreen = g;
+      // blue channel:
+      stroke(color(0,0,255));
+      line(x,height-lastblue,x+1,height-b);
+      lastblue = b;
+    }
 
     index++;
   }
@@ -154,16 +171,22 @@ void keyPressed() {
     }
     save(year()+"-"+month()+"-"+day()+"-"+hour()+""+minute()+".png");
     //http://libraries.seltar.org/postToWeb/
+  } else if (keyCode == TAB) {
+    if (colortype == "combined") {
+      colortype = "rgb";
+    } else if (colortype == "rgb") {
+      colortype = "combined";
+    }
   }
   println(samplerow);
 }
 
-void stop()
-{
+//void stop()
+//{
 //  out.close();
 //  minim.stop(); 
 //  super.stop();
-}
+//}
 
 class SpectrumCollector implements AudioSignal, AudioListener
 {
