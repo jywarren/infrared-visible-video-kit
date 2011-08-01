@@ -25,7 +25,9 @@ FFT fft;
 SpectrumCollector spectrumfilter;
 
 int bsize = 512;
-  String colortype = "combined";
+String colortype = "combined";
+String typedText = "type to label spectrum";
+PFont font;
 int res = 1;
 int samplesize = 30;
 int samplerow;
@@ -44,12 +46,12 @@ public void setup() {
   //size(320, 240, P2D);
   // Or run full screen, more fun! Use with Sketch -> Present
   //size(screen.width, screen.height, OPENGL);
-
   //video = new Capture(this, width, height, 20); //mac or windows
-  video = new GSCapture(this, width, height, "/dev/video1"); //linux; type "ls /dev/video*" in the terminal to discover video devices
+  video = new GSCapture(this, width, height, "/dev/video0"); //linux; type "ls /dev/video*" in the terminal to discover video devices
   video.play(); //linux only
   samplerow = int (height*(0.850));
 //  video.settings(); // mac or windows only, allows selection of video input
+  font = loadFont("Ubuntu-18.vlw");  
   spectrumbuf = new int[width];
   lastspectrum = new int[width];
   for (int x = 0;x < width;x++) { // is this necessary? initializing the spectrum buffer with zeroes? come on!
@@ -79,10 +81,16 @@ public void captureEvent(GSCapture c) { //linux
 }
 
 void draw() {
-  loadPixels();
+  loadPixels(); //load screen pixel buffer
   background(0);
-  line(0,height-255,width,height-255); //100% mark
-  int[] savedpixels = video.pixels;
+
+  stroke(255);
+  line(0,height-255,width,height-255); //100% mark for spectra
+
+  ////////////////////////////////////
+  // SAMPLE FROM VIDEO INPUT
+  ////////////////////////////////////
+
   int index = int (video.width*samplerow); //the horizontal strip to sample
   for (int x = 0; x < int (width); x+=res) {
 
@@ -92,7 +100,7 @@ void draw() {
       int sampleind = int ((video.width*samplerow)+(video.width*yoff)+x);
 
       if (sampleind >= 0 && sampleind <= (video.height*video.width)) {
-        int pixelColor = savedpixels[sampleind];
+        int pixelColor = video.pixels[sampleind];
         // Faster method of calculating r, g, b than red(), green(), blue() 
         r = r+((pixelColor >> 16) & 0xff);
         g = g+((pixelColor >> 8) & 0xff);
@@ -115,6 +123,17 @@ void draw() {
       pixels[(y*width)+x] = color(r,g,b);
     }
     
+    ////////////////////////////////////
+    // DRAW SPECTRUM INTENSITY GRAPH
+    ////////////////////////////////////
+
+    smooth();
+    textFont(font,18);
+    text("PLOTS Spectral Workbench", 35, 160); //display current title
+    text(typedText, 35, 200); //display current title
+    fill(150);
+    text("red=baseline, white=current, yellow=absorption", 35,height-255+45);
+  
     if (colortype == "combined") {
       // current live spectrum:
       stroke(255);
@@ -169,7 +188,11 @@ void keyPressed() {
     for (int x = 0;x < spectrumbuf.length;x++) {
       lastspectrum[x] = spectrumbuf[x];
     }
+    //save JSON:
+    
+    //save PNG:
     save(year()+"-"+month()+"-"+day()+"-"+hour()+""+minute()+".png");
+    //save to web:
     //http://libraries.seltar.org/postToWeb/
   } else if (keyCode == TAB) {
     if (colortype == "combined") {
@@ -177,6 +200,13 @@ void keyPressed() {
     } else if (colortype == "rgb") {
       colortype = "combined";
     }
+  } else if (keyCode == BACKSPACE) {
+      typedText = typedText.substring(0,max(0,typedText.length()-1));
+  } else if (keyCode == ESC) {
+      typedText = "";
+  } else {
+      if (typedText == "type to label spectrum") { typedText = ""; }
+      typedText += key;
   }
   println(samplerow);
 }
