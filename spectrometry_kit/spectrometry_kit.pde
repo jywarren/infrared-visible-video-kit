@@ -38,6 +38,7 @@ int lastval = 0;
   int lastblue = 0;
 int[] spectrumbuf;
 int[] lastspectrum;
+int[] absorption;
 
 public void setup() {
   //size(screen.width, screen.height, P2D);
@@ -54,8 +55,10 @@ public void setup() {
   font = loadFont("Ubuntu-18.vlw");  
   spectrumbuf = new int[width];
   lastspectrum = new int[width];
+  absorption = new int[width];
   for (int x = 0;x < width;x++) { // is this necessary? initializing the spectrum buffer with zeroes? come on!
     spectrumbuf[x] = 0;
+    absorption[x] = 0;
   }
   minim = new Minim(this);
   minim.debugOn();
@@ -128,11 +131,11 @@ void draw() {
     ////////////////////////////////////
 
     smooth();
-    textFont(font,18);
-    text("PLOTS Spectral Workbench", 35, 160); //display current title
-    text(typedText, 35, 200); //display current title
+//    textFont(font,18);
+//    text("PLOTS Spectral Workbench", 35, 160); //display current title
+//    text(typedText, 35, 200); //display current title
     fill(150);
-    text("red=baseline, white=current, yellow=absorption", 35,height-255+45);
+//    text("red=baseline, white=current, yellow=absorption", 35,height-255+45);
   
     if (colortype == "combined") {
       // current live spectrum:
@@ -149,7 +152,11 @@ void draw() {
 
       // percent absorption compared to reference reading
       stroke(color(255,255,0));
-      line(x,height-(255*(lastspectrum[lastind]-lastval)/(lastspectrum[lastind]+1.00)),x+1,height-(255*(lastspectrum[x]-val)/(lastspectrum[x]+1.00)));
+      // calculate absorption for this x position:
+      int absorptionval = int (255*(lastspectrum[lastind]-lastval)/(lastspectrum[lastind]+1.00));
+      // store it in the absorption buffer:
+      absorption[x] = absorptionval;
+      line(x,height-absorptionval,x+1,height-(255*(lastspectrum[x]-val)/(lastspectrum[x]+1.00)));
     } else if (colortype == "rgb") {
       // red channel:
       stroke(color(255,0,0));
@@ -208,7 +215,6 @@ void keyPressed() {
       if (typedText == "type to label spectrum") { typedText = ""; }
       typedText += key;
   }
-  println(samplerow);
 }
 
 //void stop()
@@ -250,12 +256,19 @@ class SpectrumCollector implements AudioSignal, AudioListener
 
       int vindex = int (map(x,0,fft.specSize(),0,video.width));
       int pixelColor = pixels[vindex];
-      int r = (pixelColor >> 16) & 0xff;
-      int g = (pixelColor >> 8) & 0xff;
-      int b = pixelColor & 0xff;
+//      int r = (pixelColor >> 16) & 0xff;
+//      int g = (pixelColor >> 8) & 0xff;
+//      int b = pixelColor & 0xff;
 
       //samp[x] = samp[x] *0;//* map((r+b+g)/3,0,255,0.00,1.00);
-      fft.setBand(x,map((r+b+g)/3.00,0,255,0,1));
+      // this version uses the raw incoming light to generate audio:
+      //fft.setBand(x,map((r+b+g)/3.00,0,255,0,1));
+      // this version uses the *absorption*, i.e. the difference between the last spectrum and the current one
+      if (absorption[x] < 0) {
+        fft.setBand(x,map(0,0,255,0,1));
+      } else {
+        fft.setBand(x,map(absorption[x]/3.00,0,255,0,1));
+      }
       //      fft.setBand(x,fft.getBand(x) * map((r+b+g)/3.00,0,255,0,1));
       index++;
     }
