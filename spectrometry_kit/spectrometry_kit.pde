@@ -90,6 +90,13 @@ void draw() {
   stroke(255);
   line(0,height-255,width,height-255); //100% mark for spectra
 
+//    smooth();
+    textFont(font,18);
+    text("PLOTS Spectral Workbench", 15, 160); //display current title
+    text(typedText, 15, 190); //display current title
+    fill(150);
+//    text("red=baseline, white=current, yellow=absorption",15,height-255+45);
+
   ////////////////////////////////////
   // SAMPLE FROM VIDEO INPUT
   ////////////////////////////////////
@@ -129,13 +136,6 @@ void draw() {
     ////////////////////////////////////
     // DRAW SPECTRUM INTENSITY GRAPH
     ////////////////////////////////////
-
-    smooth();
-//    textFont(font,18);
-//    text("PLOTS Spectral Workbench", 35, 160); //display current title
-//    text(typedText, 35, 200); //display current title
-    fill(150);
-//    text("red=baseline, white=current, yellow=absorption", 35,height-255+45);
   
     if (colortype == "combined") {
       // current live spectrum:
@@ -152,11 +152,9 @@ void draw() {
 
       // percent absorption compared to reference reading
       stroke(color(255,255,0));
-      // calculate absorption for this x position:
-      int absorptionval = int (255*(lastspectrum[lastind]-lastval)/(lastspectrum[lastind]+1.00));
-      // store it in the absorption buffer:
-      absorption[x] = absorptionval;
-      line(x,height-absorptionval,x+1,height-(255*(lastspectrum[x]-val)/(lastspectrum[x]+1.00)));
+      // calculate absorption for this x position, store it in the absorption buffer:
+      absorption[x] = int (255*(lastspectrum[lastind]-lastval)/(lastspectrum[lastind]+1.00));
+      line(x,height-absorption[x],x+1,height-(255*(lastspectrum[x]-val)/(lastspectrum[x]+1.00)));
     } else if (colortype == "rgb") {
       // red channel:
       stroke(color(255,0,0));
