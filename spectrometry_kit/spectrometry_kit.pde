@@ -10,13 +10,13 @@
  
  */
 
-//import processing.video.*; //mac or windows
-import codeanticode.gsvideo.*; //linux
+import processing.video.*; //mac or windows
+//import codeanticode.gsvideo.*; //linux
 import ddf.minim.analysis.*;
 import ddf.minim.*;
 
-//Capture video; //mac or windows
-GSCapture video; //linux
+Capture video; //mac or windows
+//GSCapture video; //linux
 
 Minim minim;
 AudioInput in;
@@ -29,30 +29,30 @@ String colortype = "combined";
 String typedText = "type to label spectrum";
 PFont font;
 int res = 1;
-int samplesize = 30;
+int samplesize = 80;
 int samplerow;
 int lastval = 0;
 // for rgb mode:
-  int lastred = 0;
-  int lastgreen = 0;
-  int lastblue = 0;
+int lastred = 0;
+int lastgreen = 0;
+int lastblue = 0;
 int[] spectrumbuf;
 int[] lastspectrum;
 int[] absorption;
 
 public void setup() {
   //size(screen.width, screen.height, P2D);
-  //size(1280, 720, P2D);
-  size(640, 480, P2D);
+  size(1280, 720, P2D);
+  //size(640, 480, P2D);
   //size(320, 240, P2D);
   // Or run full screen, more fun! Use with Sketch -> Present
   //size(screen.width, screen.height, OPENGL);
-  //video = new Capture(this, width, height, 20); //mac or windows
-  video = new GSCapture(this, width, height, "/dev/video0"); //linux; type "ls /dev/video*" in the terminal to discover video devices
-  video.play(); //linux only
+  video = new Capture(this, width, height, 20); //mac or windows
+  //video = new GSCapture(this, width, height, "/dev/video0"); //linux; type "ls /dev/video*" in the terminal to discover video devices
+  //video.play(); //linux only
   samplerow = int (height*(0.850));
-//  video.settings(); // mac or windows only, allows selection of video input
-  font = loadFont("Ubuntu-18.vlw");  
+  video.settings(); // mac or windows only, allows selection of video input
+  font = loadFont("Baghdad-18.vlw");  
   spectrumbuf = new int[width];
   lastspectrum = new int[width];
   absorption = new int[width];
@@ -78,8 +78,8 @@ public void setup() {
   out.addSignal(spectrumfilter);
 }
 
-//public void captureEvent(Capture c) { //mac or windows
-public void captureEvent(GSCapture c) { //linux
+public void captureEvent(Capture c) { //mac or windows
+  //public void captureEvent(GSCapture c) { //linux
   c.read();
 }
 
@@ -90,12 +90,12 @@ void draw() {
   stroke(255);
   line(0,height-255,width,height-255); //100% mark for spectra
 
-//    smooth();
-    textFont(font,18);
-    text("PLOTS Spectral Workbench", 15, 160); //display current title
-    text(typedText, 15, 190); //display current title
-    fill(150);
-//    text("red=baseline, white=current, yellow=absorption",15,height-255+45);
+  //    smooth();
+  textFont(font,18);
+  text("PLOTS Spectral Workbench", 15, height/3); //display current title
+  text(typedText, 15, height/3+30); //display current title
+  fill(150);
+  //    text("red=baseline, white=current, yellow=absorption",15,height-255+45);
 
   ////////////////////////////////////
   // SAMPLE FROM VIDEO INPUT
@@ -132,22 +132,24 @@ void draw() {
     for (int y = 0; y < int (height/4); y+=res) {
       pixels[(y*width)+x] = color(r,g,b);
     }
-    
+
     ////////////////////////////////////
     // DRAW SPECTRUM INTENSITY GRAPH
     ////////////////////////////////////
-  
+
     if (colortype == "combined") {
       // current live spectrum:
       stroke(255);
       int val = (r+g+b)/3;
       line(x,height-lastval,x+1,height-val);
       lastval = (r+g+b)/3;
-    
+
       // last saved spectrum:
       stroke(color(255,0,0));
       int lastind = x-1;
-      if (lastind < 0) { lastind = 0; }
+      if (lastind < 0) { 
+        lastind = 0;
+      }
       line(x,height-lastspectrum[lastind],x+1,height-lastspectrum[x]);
 
       // percent absorption compared to reference reading
@@ -155,7 +157,8 @@ void draw() {
       // calculate absorption for this x position, store it in the absorption buffer:
       absorption[x] = int (255*(lastspectrum[lastind]-lastval)/(lastspectrum[lastind]+1.00));
       line(x,height-absorption[x],x+1,height-(255*(lastspectrum[x]-val)/(lastspectrum[x]+1.00)));
-    } else if (colortype == "rgb") {
+    } 
+    else if (colortype == "rgb") {
       // red channel:
       stroke(color(255,0,0));
       line(x,height-lastred,x+1,height-r);
@@ -183,35 +186,47 @@ void keyPressed() {
       if (samplerow >= video.height) {
         samplerow = video.height;
       }
-    } else if (keyCode == UP) {
+    } 
+    else if (keyCode == UP) {
       samplerow -= 1;
       if (samplerow <= 0) {
         samplerow = 0;
       }
     }
-  } else if (key == ' ') {
+  } 
+  else if (key == ' ') {
     for (int x = 0;x < spectrumbuf.length;x++) {
       lastspectrum[x] = spectrumbuf[x];
     }
+  }
+  else if (key == 's') {
     //save JSON:
-    
+
     //save PNG:
-    save(year()+"-"+month()+"-"+day()+"-"+hour()+""+minute()+".png");
+    save(year()+"-"+month()+"-"+day()+"-"+hour()+""+minute()+"-"+typedText+".png");
     //save to web:
     //http://libraries.seltar.org/postToWeb/
-  } else if (keyCode == TAB) {
+    typedText = "";
+  } 
+  else if (keyCode == TAB) {
     if (colortype == "combined") {
       colortype = "rgb";
-    } else if (colortype == "rgb") {
+    } 
+    else if (colortype == "rgb") {
       colortype = "combined";
     }
-  } else if (keyCode == BACKSPACE) {
-      typedText = typedText.substring(0,max(0,typedText.length()-1));
-  } else if (keyCode == ESC) {
+  } 
+  else if (keyCode == BACKSPACE) {
+    typedText = typedText.substring(0,max(0,typedText.length()-1));
+  } 
+  else if (keyCode == ESC) {
+    typedText = "";
+  } 
+  else {
+    if (typedText == "type to label spectrum") { 
       typedText = "";
-  } else {
-      if (typedText == "type to label spectrum") { typedText = ""; }
-      typedText += key;
+    }
+    typedText += key;
   }
 }
 
@@ -254,9 +269,9 @@ class SpectrumCollector implements AudioSignal, AudioListener
 
       int vindex = int (map(x,0,fft.specSize(),0,video.width));
       int pixelColor = pixels[vindex];
-//      int r = (pixelColor >> 16) & 0xff;
-//      int g = (pixelColor >> 8) & 0xff;
-//      int b = pixelColor & 0xff;
+      //      int r = (pixelColor >> 16) & 0xff;
+      //      int g = (pixelColor >> 8) & 0xff;
+      //      int b = pixelColor & 0xff;
 
       //samp[x] = samp[x] *0;//* map((r+b+g)/3,0,255,0.00,1.00);
       // this version uses the raw incoming light to generate audio:
@@ -264,7 +279,8 @@ class SpectrumCollector implements AudioSignal, AudioListener
       // this version uses the *absorption*, i.e. the difference between the last spectrum and the current one
       if (absorption[x] < 0) {
         fft.setBand(x,map(0,0,255,0,1));
-      } else {
+      } 
+      else {
         fft.setBand(x,map(absorption[x]/3.00,0,255,0,1));
       }
       //      fft.setBand(x,fft.getBand(x) * map((r+b+g)/3.00,0,255,0,1));
