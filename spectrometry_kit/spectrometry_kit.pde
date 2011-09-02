@@ -10,13 +10,13 @@
  
  */
 
-//import processing.video.*; //mac or windows
-import codeanticode.gsvideo.*; //linux
+import processing.video.*; //mac or windows
+//import codeanticode.gsvideo.*; //linux
 import ddf.minim.analysis.*;
 import ddf.minim.*;
 
-//Capture video; //mac or windows
-GSCapture video; //linux
+Capture video; //mac or windows
+//GSCapture video; //linux
 
 Minim minim;
 AudioInput in;
@@ -30,13 +30,13 @@ String typedText = "type to label spectrum";
 PFont font;
 int audiocount = 0;
 int res = 1;
-int samplesize = 30;
+int samplesize = 80;
 int samplerow;
 int lastval = 0;
 // for rgb mode:
-  int lastred = 0;
-  int lastgreen = 0;
-  int lastblue = 0;
+int lastred = 0;
+int lastgreen = 0;
+int lastblue = 0;
 int[] spectrumbuf;
 int[] lastspectrum;
 int[] absorption;
@@ -46,8 +46,8 @@ int absorptionSum;
 
 public void setup() {
   //size(screen.width, screen.height, P2D);
-  //size(1280, 720, P2D);
-  size(640, 480, P2D);
+  size(1280, 720, P2D);
+  //size(640, 480, P2D);
   //size(320, 240, P2D);
   // Or run full screen, more fun! Use with Sketch -> Present
   //size(screen.width, screen.height, OPENGL);
@@ -84,8 +84,8 @@ public void setup() {
   out.addSignal(spectrumfilter);
 }
 
-//public void captureEvent(Capture c) { //mac or windows
-public void captureEvent(GSCapture c) { //linux
+public void captureEvent(Capture c) { //mac or windows
+  //public void captureEvent(GSCapture c) { //linux
   c.read();
 }
 
@@ -136,22 +136,24 @@ void draw() {
     for (int y = 0; y < int (height/4); y+=res) {
       pixels[(y*width)+x] = color(r,g,b);
     }
-    
+
     ////////////////////////////////////
     // DRAW SPECTRUM INTENSITY GRAPH
     ////////////////////////////////////
-  
+
     if (colortype == "combined") {
       // current live spectrum:
       stroke(255);
       int val = (r+g+b)/3;
       line(x,height-lastval,x+1,height-val);
       lastval = (r+g+b)/3;
-    
+
       // last saved spectrum:
       stroke(color(255,0,0));
       int lastind = x-1;
-      if (lastind < 0) { lastind = 0; }
+      if (lastind < 0) { 
+        lastind = 0;
+      }
       line(x,height-lastspectrum[lastind],x+1,height-lastspectrum[x]);
 
       // percent absorption compared to reference reading
@@ -204,35 +206,47 @@ void keyPressed() {
       if (samplerow >= video.height) {
         samplerow = video.height;
       }
-    } else if (keyCode == UP) {
+    } 
+    else if (keyCode == UP) {
       samplerow -= 1;
       if (samplerow <= 0) {
         samplerow = 0;
       }
     }
-  } else if (key == ' ') {
+  } 
+  else if (key == ' ') {
     for (int x = 0;x < spectrumbuf.length;x++) {
       lastspectrum[x] = spectrumbuf[x];
     }
+  }
+  else if (key == 's') {
     //save JSON:
-    
+
     //save PNG:
-    save(year()+"-"+month()+"-"+day()+"-"+hour()+""+minute()+".png");
+    save(year()+"-"+month()+"-"+day()+"-"+hour()+""+minute()+"-"+typedText+".png");
     //save to web:
     //http://libraries.seltar.org/postToWeb/
-  } else if (keyCode == TAB) {
+    typedText = "";
+  } 
+  else if (keyCode == TAB) {
     if (colortype == "combined") {
       colortype = "rgb";
-    } else if (colortype == "rgb") {
+    } 
+    else if (colortype == "rgb") {
       colortype = "combined";
     }
-  } else if (keyCode == BACKSPACE) {
-      typedText = typedText.substring(0,max(0,typedText.length()-1));
-  } else if (keyCode == ESC) {
+  } 
+  else if (keyCode == BACKSPACE) {
+    typedText = typedText.substring(0,max(0,typedText.length()-1));
+  } 
+  else if (keyCode == ESC) {
+    typedText = "";
+  } 
+  else {
+    if (typedText == "type to label spectrum") { 
       typedText = "";
-  } else {
-      if (typedText == "type to label spectrum") { typedText = ""; }
-      typedText += key;
+    }
+    typedText += key;
   }
 }
 
