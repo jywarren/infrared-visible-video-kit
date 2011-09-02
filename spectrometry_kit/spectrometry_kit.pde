@@ -28,6 +28,7 @@ int bsize = 512;
 String colortype = "combined";
 String typedText = "type to label spectrum";
 PFont font;
+int audiocount = 0;
 int res = 1;
 int samplesize = 30;
 int samplerow;
@@ -39,6 +40,9 @@ int lastval = 0;
 int[] spectrumbuf;
 int[] lastspectrum;
 int[] absorption;
+int[] contrastEnhancedAbsorption;
+int averageAbsorption = 0;
+int absorptionSum;
 
 public void setup() {
   //size(screen.width, screen.height, P2D);
@@ -48,17 +52,19 @@ public void setup() {
   // Or run full screen, more fun! Use with Sketch -> Present
   //size(screen.width, screen.height, OPENGL);
   //video = new Capture(this, width, height, 20); //mac or windows
-  video = new GSCapture(this, width, height, "/dev/video0"); //linux; type "ls /dev/video*" in the terminal to discover video devices
+  video = new GSCapture(this, width, height, "/dev/video1"); //linux; type "ls /dev/video*" in the terminal to discover video devices
   video.play(); //linux only
-  samplerow = int (height*(0.850));
+  samplerow = int (height*(0.50));
 //  video.settings(); // mac or windows only, allows selection of video input
   font = loadFont("Ubuntu-18.vlw");  
   spectrumbuf = new int[width];
   lastspectrum = new int[width];
   absorption = new int[width];
+  contrastEnhancedAbsorption = new int[width];
   for (int x = 0;x < width;x++) { // is this necessary? initializing the spectrum buffer with zeroes? come on!
     spectrumbuf[x] = 0;
     absorption[x] = 0;
+    contrastEnhancedAbsorption[x] = 0;
   }
   minim = new Minim(this);
   minim.debugOn();
@@ -90,12 +96,14 @@ void draw() {
   stroke(255);
   line(0,height-255,width,height-255); //100% mark for spectra
 
-//    smooth();
     textFont(font,18);
     text("PLOTS Spectral Workbench", 15, 160); //display current title
     text(typedText, 15, 190); //display current title
     fill(150);
 //    text("red=baseline, white=current, yellow=absorption",15,height-255+45);
+
+  // re-zero intensity sum
+  absorptionSum = 0;
 
   ////////////////////////////////////
   // SAMPLE FROM VIDEO INPUT
@@ -118,16 +126,12 @@ void draw() {
       }
     }    
 
+    // sample <samplesize> rows of data in each of 3 colors:
     r = int (r/(samplesize*1.00));
     g = int (g/(samplesize*1.00));
     b = int (b/(samplesize*1.00));
 
-    // older code to sample just 1 line:
-    //      int pixelColor = video.pixels[index];
-    //       int r = (pixelColor >> 16) & 0xff;
-    //       int g = (pixelColor >> 8) & 0xff;
-    //       int b = pixelColor & 0xff;
-
+    // draw direct output of averaged camera sampling
     spectrumbuf[x] = (r+g+b)/3;
     for (int y = 0; y < int (height/4); y+=res) {
       pixels[(y*width)+x] = color(r,g,b);
@@ -153,9 +157,23 @@ void draw() {
       // percent absorption compared to reference reading
       stroke(color(255,255,0));
       // calculate absorption for this x position, store it in the absorption buffer:
-      absorption[x] = int (255*(lastspectrum[lastind]-lastval)/(lastspectrum[lastind]+1.00));
-      line(x,height-absorption[x],x+1,height-(255*(lastspectrum[x]-val)/(lastspectrum[x]+1.00)));
-    } else if (colortype == "rgb") {
+      absorption[x] = int (255*(1-(val/(lastspectrum[x]+1.00))));
+      int last = x-1;
+      if (last < 0) { last = 0; }
+      line(x,height-absorption[last],x+1,height-absorption[x]);
+
+      // contrast-enhanced absorption:
+      absorptionSum += absorption[x];
+      // amplify by scale factor:
+      contrastEnhancedAbsorption[x] = (absorption[x] - averageAbsorption) * 4;
+      contrastEnhancedAbsorption[x] += averageAbsorption;
+      stroke(color(0,255,0)); // green line
+      last = x-1;
+      if (last < 0) { last = 0; }
+      line(x,height-contrastEnhancedAbsorption[last],x+1,height-contrastEnhancedAbsorption[x]);
+
+    } else if (colortype == "rgb") { // RGB sensor calibration mode
+
       // red channel:
       stroke(color(255,0,0));
       line(x,height-lastred,x+1,height-r);
@@ -173,6 +191,9 @@ void draw() {
     index++;
   }
 
+  averageAbsorption = absorptionSum/width;
+  stroke(color(128,128,128));
+  line(0,averageAbsorption,width,averageAbsorption);
   updatePixels();
 }
 
@@ -245,6 +266,10 @@ class SpectrumCollector implements AudioSignal, AudioListener
   void generate(float[] samp)
   {
     arraycopy(leftChannel,samp);
+//    audiocount += 1;
+//    if (audiocount > 100) {
+//    audiocount = 0;
+    if (true) {
     fft.forward(samp);
     loadPixels();
 
@@ -254,9 +279,9 @@ class SpectrumCollector implements AudioSignal, AudioListener
 
       int vindex = int (map(x,0,fft.specSize(),0,video.width));
       int pixelColor = pixels[vindex];
-//      int r = (pixelColor >> 16) & 0xff;
-//      int g = (pixelColor >> 8) & 0xff;
-//      int b = pixelColor & 0xff;
+      int r = (pixelColor >> 16) & 0xff;
+      int g = (pixelColor >> 8) & 0xff;
+      int b = pixelColor & 0xff;
 
       //samp[x] = samp[x] *0;//* map((r+b+g)/3,0,255,0.00,1.00);
       // this version uses the raw incoming light to generate audio:
@@ -265,12 +290,13 @@ class SpectrumCollector implements AudioSignal, AudioListener
       if (absorption[x] < 0) {
         fft.setBand(x,map(0,0,255,0,1));
       } else {
-        fft.setBand(x,map(absorption[x]/3.00,0,255,0,1));
+        fft.setBand(x,map(contrastEnhancedAbsorption[x]/3.00,0,255,0.4,0.7));
       }
-      //      fft.setBand(x,fft.getBand(x) * map((r+b+g)/3.00,0,255,0,1));
+//    fft.setBand(x,fft.getBand(x) * map((r+b+g)/3.00,0,255,0.3,0.7));
       index++;
     }
     fft.inverse(samp);
+    }
   }
   // this is a stricly mono signal
   void generate(float[] left, float[] right)
